@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
 
-class DownsampleBlock(nn.Module):
+class downsample_block(nn.Module):
     def __init__(self, in_channels, out_channels, pool_k_size, conv_k_size, conv_stride):
         """
         Creates a DownsampleBlock.
@@ -38,7 +38,7 @@ class DownsampleBlock(nn.Module):
         return self.conv(self.pool(x))
     
 
-class UpsampleBlock(nn.Module):
+class upsample_block(nn.Module):
     def __init__(self, in_channels, skip_channels, out_channels, upsample_s_factor, conv_k_size, conv_stride):
         """
         Creates an UpsampleBlock.

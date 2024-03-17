@@ -1,5 +1,5 @@
 import torch
-from model import DownsampleBlock, UpsampleBlock
+from model import downsample_block, upsample_block
 
 if __name__ == "__main__":
 
@@ -10,7 +10,7 @@ if __name__ == "__main__":
     pool_k_size  = (2, 1)
     conv_k_size  = (3, 3)
     conv_stride  = (1, 1)
-    db = DownsampleBlock(in_channels, out_channels, pool_k_size, conv_k_size, conv_stride)
+    db = downsample_block(in_channels, out_channels, pool_k_size, conv_k_size, conv_stride)
 
     input = torch.rand(in_channels, fbins, T)
     output = db(input)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     upsample_s_factor = (2, 1)
     conv_k_size       = (3, 3)
     conv_stride       = (1, 1)
-    ub = UpsampleBlock(in_channels, skip_channels, out_channels, upsample_s_factor, conv_k_size, conv_stride)
+    ub = upsample_block(in_channels, skip_channels, out_channels, upsample_s_factor, conv_k_size, conv_stride)
 
     input = torch.rand(nbatch, in_channels, fbins, T)
     skip_conn = torch.rand(nbatch, skip_channels, fbins * 2, T)
