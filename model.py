@@ -3,14 +3,15 @@ import torch.nn as nn
 import torchvision.transforms.functional as TF
 
 class DownsampleBlock(nn.Module):
-    def __init__(self, channels, pool_k_size, conv_k_size, conv_stride):
+    def __init__(self, in_channels, out_channels, pool_k_size, conv_k_size, conv_stride):
         """
         Creates a DownsampleBlock.
 
-        channels   : Number of channels
-        pool_k_size: Max pool kernel size (same used for stride in max pool)
-        conv_k_size: Conv2d kernel size
-        conv_stride: Conv2d stride
+        in_channels:  Number of input channels
+        out_channels: Number of output channels
+        pool_k_size:  Max pool kernel size (same used for stride in max pool)
+        conv_k_size:  Conv2d kernel size
+        conv_stride:  Conv2d stride
         """
         super().__init__()
 
@@ -21,12 +22,12 @@ class DownsampleBlock(nn.Module):
         # Conv layers
         self.conv = nn.Sequential(
             # Conv2d layer. Number of channels does not change. Padding = same to ensure input size is same as output
-            nn.Conv2d(channels, channels, 
+            nn.Conv2d(in_channels, out_channels, 
                       kernel_size = conv_k_size, 
                       stride      = conv_stride, 
                       padding     = 'same'),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels, 
+            nn.Conv2d(out_channels, out_channels, 
                       kernel_size = conv_k_size, 
                       stride      = conv_stride, 
                       padding     = 'same'),
