@@ -1,5 +1,5 @@
 import torch
-from model import downsample_block, upsample_block
+from model import downsample_block, upsample_block, u_net
 
 if __name__ == "__main__":
 
@@ -33,3 +33,25 @@ if __name__ == "__main__":
     skip_conn = torch.rand(nbatch, skip_channels, fbins * 2, T)
     output = ub(input, skip_conn)
     assert (tuple(output.shape) == (nbatch, out_channels, fbins*2, T)), f"ERROR: Shape mismatch in UownsampleBlock! Expected {(nbatch, out_channels, fbins*2, T)}, got {tuple(output.shape)}!"
+
+
+    # TEST ALL:
+    in_out_channels       = 1
+    fbins                 = 256
+    T                     = 100
+    intermediate_channels = [4, 4, 4, 8, 8, 16]
+    pool_k_size           = (2, 1)
+    conv_k_size           = (3, 3)
+    conv_stride           = (1, 1)
+    u_net_ = u_net(
+        in_out_channels, 
+        fbins, 
+        intermediate_channels,
+        pool_k_size,
+        conv_k_size,
+        conv_stride)
+    
+    nbatch = 10
+    input_data = torch.rand(nbatch, in_out_channels, fbins, T)
+    print (u_net_(input_data).shape)
+    
