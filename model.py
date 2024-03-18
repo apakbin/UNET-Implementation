@@ -3,17 +3,20 @@ import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
 
-
+# create a shift right by shifting right the columns of an indentity matrix and setting left col as 0
 def shift_right(n, dtype):
     mask  = torch.roll(torch.eye(n, dtype=dtype), shifts=[1], dims=[1])
     mask[:, 0] = 0
     return mask
 
+# create a shift left by shifting left the columns of an indentity matrix and setting right col as 0
 def shift_left(n, dtype):
     mask = torch.roll(torch.eye(n, dtype=dtype), shifts=[-1], dims=[1])
     mask[:, -1] = 0
     return mask
 
+# create a shift mask, which when the tensor is multiplied by it, shift_left_idxs channels
+# get shifted to left and shift_right_idxs channels get shifted to right
 def shift_mask (n_channels, T, shift_left_idxs, shift_right_idxs, dtype):
     mask                   = torch.stack([torch.eye(T, dtype = dtype) for _ in range(n_channels)])
     mask[shift_left_idxs]  = shift_left(T, dtype)
@@ -22,8 +25,37 @@ def shift_mask (n_channels, T, shift_left_idxs, shift_right_idxs, dtype):
     return mask
 
 
+class TSConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        """
+        Creates a TSConv class. 
+
+        in_channels:  Number of input channels.
+        out_channels: Number of output channels.
+        kernel_size:  kernel_size
+        stride:       stride
+        """
+        super().__init__()
+
+        # TSConv needs a regular Conv2d to be applied after shifting
+        self.conv = nn.Conv2d(in_channels, out_channels, 
+            kernel_size = kernel_size, 
+            stride      = stride,
+            padding     = 'same')
+        
+    def forward(self, x):
+        # get number of channels, and also the length in time
+        nchannel, _, T = x.shape[-3:]
+        mask = shift_mask(
+            nchannel, T, 
+            shift_left_idxs  = range(0, nchannel//4), # shift indexes 0 to nchannel//4 to left
+            shift_right_idxs = range(nchannel//4, nchannel//2), # shift indexes nchannel//4 to nchannel//2 to right
+            dtype=x.dtype)
+        return self.conv(x @ mask)
+
+
 class downsample_block(nn.Module):
-    def __init__(self, in_channels, out_channels, pool_k_size, conv_k_size, conv_stride):
+    def __init__(self, in_channels, out_channels, pool_k_size, conv_k_size, conv_stride, ts_conv = False):
         """
         Creates a DownsampleBlock.
 
@@ -32,34 +64,46 @@ class downsample_block(nn.Module):
         pool_k_size:  Max pool kernel size (same used for stride in max pool)
         conv_k_size:  Conv2d kernel size
         conv_stride:  Conv2d stride
+        ts_conv    :  If set to True, TSConv will be implemented
         """
         super().__init__()
 
         # Pooling layer. Setting stride equal to kernel size
         self.pool = nn.MaxPool2d(kernel_size = pool_k_size, stride = pool_k_size)
 
-
-        # Conv layers
-        self.conv = nn.Sequential(
-            # Conv2d layer. Number of channels does not change. Padding = same to ensure input size is same as output
-            nn.Conv2d(in_channels, out_channels, 
-                      kernel_size = conv_k_size, 
-                      stride      = conv_stride, 
-                      padding     = 'same'),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, 
-                      kernel_size = conv_k_size, 
-                      stride      = conv_stride, 
-                      padding     = 'same'),
-            nn.ReLU(inplace=True),
-        )
+        if not ts_conv:
+            # Conv layers
+            self.conv = nn.Sequential(
+                # Conv2d layer. Number of channels does not change. Padding = same to ensure input size is same as output
+                nn.Conv2d(in_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride, 
+                        padding     = 'same'),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride, 
+                        padding     = 'same'),
+                nn.ReLU(inplace=True))
+        else:
+            conv_k_size = (conv_k_size[0], conv_k_size[1] // 3) # just for the sake of having a formula
+            self.conv = nn.Sequential(
+                # replace Conv2d layers with TSConv layers
+                TSConv(in_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride),
+                nn.ReLU(inplace=True),
+                TSConv(out_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride),
+                nn.ReLU(inplace=True))
 
     def forward(self, x):
         return self.conv(self.pool(x))
     
 
 class upsample_block(nn.Module):
-    def __init__(self, in_channels, skip_channels, out_channels, upsample_s_factor, conv_k_size, conv_stride):
+    def __init__(self, in_channels, skip_channels, out_channels, upsample_s_factor, conv_k_size, conv_stride, ts_conv = False):
         """
         Creates an UpsampleBlock.
 
@@ -77,18 +121,31 @@ class upsample_block(nn.Module):
 
         # Conv layers. First conv input channels will be number of input channels + skip conn 
         # channels
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels + skip_channels, out_channels, 
-                      kernel_size = conv_k_size, 
-                      stride      = conv_stride, 
-                      padding     = 'same'),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, 
-                      kernel_size = conv_k_size, 
-                      stride      = conv_stride, 
-                      padding     = 'same'),
-            nn.ReLU(inplace=True),
-        )
+        if not ts_conv:
+            self.conv = nn.Sequential(
+                nn.Conv2d(in_channels + skip_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride, 
+                        padding     = 'same'),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride, 
+                        padding     = 'same'),
+                nn.ReLU(inplace=True))
+        else:
+            conv_k_size = (conv_k_size[0], conv_k_size[1] // 3) # just for the sake of having a formula
+            self.conv = nn.Sequential(
+                # replace Conv2d layers with TSConv layers
+                TSConv(in_channels + skip_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride),
+                nn.ReLU(inplace=True),
+                TSConv(out_channels, out_channels, 
+                        kernel_size = conv_k_size, 
+                        stride      = conv_stride),
+                nn.ReLU(inplace=True))
+
     
     def forward(self, x, skip_conn):
         """
@@ -119,7 +176,8 @@ class u_net(nn.Module):
         intermediate_channels = [4, 4, 4, 8, 8, 16],
         pool_k_size           = (2, 1),
         conv_k_size           = (3, 3),
-        conv_stride           = (1, 1)):
+        conv_stride           = (1, 1),
+        ts_conv               = False):
         """
         Creates a UNet.
 
@@ -174,7 +232,8 @@ class u_net(nn.Module):
                 out_channels = intermediate_channels[i + 1], 
                 pool_k_size  = pool_k_size,
                 conv_k_size  = conv_k_size,
-                conv_stride  = conv_stride))
+                conv_stride  = conv_stride,
+                ts_conv      = ts_conv))
         
         # Decoder: blocks of decoder
         self.dec = nn.ModuleList()
@@ -189,7 +248,8 @@ class u_net(nn.Module):
                 out_channels      = intermediate_channels[i-1], 
                 upsample_s_factor = pool_k_size, 
                 conv_k_size       = conv_k_size, 
-                conv_stride       = conv_stride))
+                conv_stride       = conv_stride,
+                ts_conv           = ts_conv))
             
     def forward(self, x):
         # pass x through the first conv layers 'first_conv'
