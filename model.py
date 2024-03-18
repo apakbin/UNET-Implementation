@@ -3,6 +3,25 @@ import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
 
+
+def shift_right(n, dtype):
+    mask  = torch.roll(torch.eye(n, dtype=dtype), shifts=[1], dims=[1])
+    mask[:, 0] = 0
+    return mask
+
+def shift_left(n, dtype):
+    mask = torch.roll(torch.eye(n, dtype=dtype), shifts=[-1], dims=[1])
+    mask[:, -1] = 0
+    return mask
+
+def shift_mask (n_channels, T, shift_left_idxs, shift_right_idxs, dtype):
+    mask                   = torch.stack([torch.eye(T, dtype = dtype) for _ in range(n_channels)])
+    mask[shift_left_idxs]  = shift_left(T, dtype)
+    mask[shift_right_idxs] = shift_right(T, dtype)
+
+    return mask
+
+
 class downsample_block(nn.Module):
     def __init__(self, in_channels, out_channels, pool_k_size, conv_k_size, conv_stride):
         """
