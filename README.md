@@ -30,6 +30,7 @@ M_r = \begin{bmatrix}
     0      & 0 & 0 & \dots  & 0 
     \end{bmatrix},
 $$
+
 where the first column is all $0$'s and the right $T-1$ columns are the left $T-1$ columns of a $T \times T$ identity matrix. 
 
 By right multiplying $X$ with $M_r$, we would get
