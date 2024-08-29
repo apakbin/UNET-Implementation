@@ -20,6 +20,7 @@ $$
 In our use case, $x_t$ is the values for different frequency bins for time step $t$.
 
 Now consider the following mask matrix $M_r \in \mathbb{R}^{T \times T}$, which is a square matrix of size $T$:
+
 $$
 M_r = \begin{bmatrix} 
     0      & 1 & 0 & \dots  & 0\\
