@@ -8,7 +8,7 @@ The U-Net architecture takes an input tensor of shape [256, T, 1] and outputs a 
 The architecture includes two types of convolution operations:
 
 * Standard Conv2d - Regular 2D convolution layers.
-* CustConv - A custom convolution operator designed to simplify the model by reducing kernel size while maintaining the same receptive field.
+* CustConv - A custom convolution operator designed to simplify the model by reducing kernel size while maintaining the same receptive field. CustConv layer processes input data by first dividing the channels into two groups: static and dynamic. The dynamic channels are then manipulated by shifting half of them forward by one timestep and the other half backward by one timestep, while the static channels remain unchanged. This time-shifting results in a tensor that maintains the same shape as the original input. Following this, a 2D convolution is applied to the time-shifted tensor. This convolution operation helps capture temporal patterns and interactions within the data, leveraging the altered dynamic channels to enhance the model's ability to recognize temporal dependencies.
 
 ## CustConv: Some Implementation Details
 We have used matrix multiplication for implementing time shift in a channel. Let us assume we have data for a single channel in the form of $X \in \mathbb{R}^{f \times T}$ which is matrix with $f$ rows and $T$ columns. Denoting the $t$'th column as $x_t$, we can write X as:
