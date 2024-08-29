@@ -34,11 +34,13 @@ $$
 where the first column is all $0$'s and the right $T-1$ columns are the left $T-1$ columns of a $T \times T$ identity matrix. 
 
 By right multiplying $X$ with $M_r$, we would get
+
 $$
 XM_r = \begin{bmatrix} 0 & x_1 & x_2 & \cdots & x_{T-1}\end{bmatrix}.
 $$
 
 So right multiplication by $M_r$ results in a shift to the right. Similarly, consider the matrix $M_l \in \mathbb{R}^{T \times T}$ of the form:
+
 $$
 M_l = \begin{bmatrix} 
     0      & 0 & 0 & \dots  & 0 & 0\\
@@ -52,6 +54,7 @@ $$
 where the rightmost column is all $0$'s and the left $T-1$ columns are the right $T-1$ columns of a $T \times T$ identity matrix.
 
 Right multiplying $X$ by $M_l$ results in:
+
 $$
 XM_l = \begin{bmatrix} x_2 & \cdots & x_T & 0\end{bmatrix}.
 $$
