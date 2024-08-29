@@ -10,7 +10,7 @@ The architecture includes two types of convolution operations:
 * Standard Conv2d - Regular 2D convolution layers.
 * CustConv - A custom convolution operator designed to simplify the model by reducing kernel size while maintaining the same receptive field.
 
-## Some Implementation Details: Implementing CustConv
+## CustConv: Some Implementation Details
 We have used matrix multiplication for implementing time shift in a channel. Let us assume we have data for a single channel in the form of $X \in \mathbb{R}^{f \times T}$ which is matrix with $f$ rows and $T$ columns. Denoting the $t$'th column as $x_t$, we can write X as:
 
 $$
