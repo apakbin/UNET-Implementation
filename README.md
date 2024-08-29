@@ -19,23 +19,8 @@ $$
 
 In our use case, $x_t$ is the values for different frequency bins for time step $t$.
 
-Point A:
-\[
-sign\left(1\cdot 1\cdot e^{-\left(1+4\right)}+2\cdot \left(-1\right)\cdot e^{-\left(9+16\right)}+3\cdot 1\cdot e^{-\left(4+9\right)}\right)
-\]
-
-Point B:
-\[
-sign\left(1\cdot 1\cdot e^{-\left(4+1\right)}+2\cdot \left(-1\right)\cdot e^{-\left(0+1\right)}+3\cdot 1\cdot e^{-\left(1+0\right)}\right)
-\]
-
-Point C:
-\[
-sign\left(1\cdot 1\cdot e^{-\left(0+0\right)}+2\cdot \left(-1\right)\cdot e^{-\left(4+4\right)}+3\cdot 1\cdot e^{-\left(1+1\right)}\right)
-\]
-
 Now consider the following mask matrix $M_r \in \mathbb{R}^{T \times T}$, which is a square matrix of size $T$:
-\[
+$$
 M_r = \begin{bmatrix} 
     0      & 1 & 0 & \dots  & 0\\
     0      & 0 & 1 & \dots  & 0\\
@@ -43,16 +28,16 @@ M_r = \begin{bmatrix}
     0      & 0 & 0 & \dots  & 1 \\
     0      & 0 & 0 & \dots  & 0 
     \end{bmatrix},
-\]
+$$
 where the first column is all $0$'s and the right $T-1$ columns are the left $T-1$ columns of a $T \times T$ identity matrix. 
 
 By right multiplying $X$ with $M_r$, we would get
-\[
+$$
 XM_r = \begin{bmatrix} 0 & x_1 & x_2 & \cdots & x_{T-1}\end{bmatrix}.
-\]
+$$
 
 So right multiplication by $M_r$ results in a shift to the right. Similarly, consider the matrix $M_l \in \mathbb{R}^{T \times T}$ of the form:
-\[
+$$
 M_l = \begin{bmatrix} 
     0      & 0 & 0 & \dots  & 0 & 0\\
     1      & 0 & 0 & \dots  & 0 & 0\\
@@ -60,14 +45,14 @@ M_l = \begin{bmatrix}
     \vdots & \vdots & \vdots & \ddots & \vdots & \vdots\\
     0      & 0 & 0 & \dots  & 1 & 0 \\
     \end{bmatrix},
-\]
+$$
 
 where the rightmost column is all $0$'s and the left $T-1$ columns are the right $T-1$ columns of a $T \times T$ identity matrix.
 
 Right multiplying $X$ by $M_l$ results in:
-\[
+$$
 XM_l = \begin{bmatrix} x_2 & \cdots & x_T & 0\end{bmatrix}.
-\]
+$$
 
 In this project, we use the same mechanics for implementing time shifts. If a \pytorchb tensor $X$ has the shape $C \times f \times T$, we create a mask $\mathbf{Mask}$ of size $C \times T \times T$ where:
 \begin{itemize}
@@ -78,8 +63,7 @@ In this project, we use the same mechanics for implementing time shifts. If a \p
 Afterwards, we get the shifted version of the input by performing the matrix operation $X \mathbf{Mask}$.
 
 To create $M_l$ and $M_r$, I use the following functions:
-\color{purple}
-\begin{Code}
+```
     def shift_right_mask(n, dtype):
         mask  = torch.roll(torch.eye(n, dtype=dtype), shifts=[1], dims=[1])
         mask[:, 0] = 0
@@ -89,20 +73,18 @@ To create $M_l$ and $M_r$, I use the following functions:
         mask = torch.roll(torch.eye(n, dtype=dtype), shifts=[-1], dims=[1])
         mask[:, -1] = 0
         return mask
-\end{Code}
-\color{black}
+```
+
 which shift identity matrices to either left or right and then set the "rolled" column to zero.
 
 Their work is then aggregated to create the final mask:
-\color{purple}
-\begin{Code}
+```
     def shift_mask (n_channels, T, shift_left_idxs, shift_right_idxs, dtype):
         mask = torch.stack([torch.eye(T, dtype = dtype) for _ in range(n_channels)])
         mask[shift_left_idxs]  = shift_left_mask(T, dtype)
         mask[shift_right_idxs] = shift_right_mask(T, dtype)
     
         return mask
-\end{Code}
-\color{black}
+```
 
 where a mask of all identity matrices gets created, and at the indeces where we want to shift left or right, we plant $M_l$ or $M_r$ accordingly.
