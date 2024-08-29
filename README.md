@@ -12,9 +12,10 @@ The architecture includes two types of convolution operations:
 
 ## Some Implementation Details: Implementing CustConv
 We have used matrix multiplication for implementing time shift in a channel. Let us assume we have data for a single channel in the form of $X \in \mathbb{R}^{f \times T}$ which is matrix with $f$ rows and $T$ columns. Denoting the $t$'th column as $x_t$, we can write X as:
-\[
+
+$$
 X = \begin{bmatrix} x_1 & x_2 & \cdots & x_T \end{bmatrix}
-\]
+$$
 
 In our use case, $x_t$ is the values for different frequency bins for time step $t$.
 
