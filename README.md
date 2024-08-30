@@ -80,7 +80,7 @@ To create $M_l$ and $M_r$, I use the following functions:
         return mask
 ```
 
-which shift identity matrices to either left or right and then set the "rolled" column to zero.
+which shifts identity matrices to either left or right and then set the "rolled" column to zero.
 
 Their work is then aggregated to create the final mask:
 ```
